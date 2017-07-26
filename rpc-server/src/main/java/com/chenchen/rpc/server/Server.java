@@ -4,6 +4,7 @@ import com.chenchen.rpc.common.EnCoder;
 import com.chenchen.rpc.common.Request;
 import com.chenchen.rpc.common.DeCoder;
 import com.chenchen.rpc.common.Response;
+import com.chenchen.rpc.register_discover.Register;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -23,9 +24,12 @@ import java.util.Map;
 public class Server  implements ApplicationContextAware, InitializingBean {
     // 需要注册的地址
     private String serverAddress;
+
+    private Register register;
     // 用于放入实体
     private Map<String, Object> serviceMap = new HashMap<String, Object>();
-    public Server(String serverAddress) {
+    public Server(String serverAddress, Register register) {
+        this.register = register;
         this.serverAddress = serverAddress;
     }
 
@@ -45,10 +49,20 @@ public class Server  implements ApplicationContextAware, InitializingBean {
                                 channel.pipeline().addLast(new DeCoder(Request.class))// 注册解码 IN-1
                                                   .addLast(new EnCoder(Response.class))// 注册编码 OUT-3
                                                   .addLast(new Handler(serviceMap));//注册RpcHandler IN-2
-            }
-        }).option(ChannelOption.SO_BACKLOG, 128).childOption(ChannelOption.SO_KEEPALIVE, true);;
+                            }
+                        }).option(ChannelOption.SO_BACKLOG, 128) // 设置socket 中等待的连接数
+                          .childOption(ChannelOption.SO_KEEPALIVE, true); // 设置当长时间没有数据交流，进行socket测试包转发
 
+        String[] array = serverAddress.split(":");
+        String host = array[0]; // 主机ip
+        int port = Integer.parseInt(array[1]); // socket开放端口
 
+        ChannelFuture future = bootstrap.bind(host, port).sync(); // 同步等到socket开启服务成功
+        // 当sokcet服务开启成功后，进行服务注册
+        register.register(serverAddress);
+
+        // 只要有future的就要关闭, 服务开启和服务注册成功
+        future.channel().closeFuture().sync();
     }
 
     /**
@@ -62,7 +76,7 @@ public class Server  implements ApplicationContextAware, InitializingBean {
         Map<String, Object> beans = ctx.getBeansWithAnnotation(RpcInterface.class);
         // 放入serviceMap中
         for(Object object : beans.values()) {
-            String key = object.getClass().getAnnotation(RpcInterface.class).value().toString();
+            String key = object.getClass().getAnnotation(RpcInterface.class).value().getName();
             serviceMap.put(key, object);
         }
     }

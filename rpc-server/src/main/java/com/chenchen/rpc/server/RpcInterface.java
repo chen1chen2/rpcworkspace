@@ -17,5 +17,5 @@ import java.lang.annotation.Target;
 @Component // spring的注解，用于spring扫描
 public @interface RpcInterface {
     // 返回自定义注解中的value
-    String value();
+    Class<?> value();
 }

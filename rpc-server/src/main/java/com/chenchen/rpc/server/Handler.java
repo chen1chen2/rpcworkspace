@@ -25,10 +25,8 @@ public class Handler extends SimpleChannelInboundHandler<Request> {
     }
 
     // 从decoder中过来的request
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object rq) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, Request request) throws Exception {
         // 新建返回对象
-        Request request = (Request) rq;
         Response response = new Response();
         response.setRequestId(request.getRequestId());
         try {
@@ -38,12 +36,12 @@ public class Handler extends SimpleChannelInboundHandler<Request> {
         } catch (Exception e) {
             // 如果有异常则写入到到response中
             response.setError(e);
+            e.printStackTrace();
         }
 
         //写入 outbundle（即RpcEncoder）进行下一步处理（即编码）后发送到channel中给客户端
         // 只要有writeandflush就是写到outhandler中
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-
     }
 
 
@@ -61,10 +59,6 @@ public class Handler extends SimpleChannelInboundHandler<Request> {
         Object invoke = method.invoke(bean, parameters);
 
         return invoke;
-    }
-
-    protected void messageReceived(ChannelHandlerContext channelHandlerContext, Request request) throws Exception {
-
     }
 
     /**

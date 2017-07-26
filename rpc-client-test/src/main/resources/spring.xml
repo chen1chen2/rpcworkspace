@@ -10,14 +10,14 @@
     <!--加载配置文件-->
     <context:property-placeholder location="classpath:rpc.properties"/>
 
-    <context:component-scan base-package="com.chenchen.rpc.server.test"></context:component-scan>
+    <context:component-scan base-package="com.chenchen.rpc.client.test"></context:component-scan>
 
-    <bean id="register" class="com.chenchen.rpc.register_discover.Register">
+    <bean id="discover" class="com.chenchen.rpc.register_discover.Discover">
         <constructor-arg name="zkAddress" value="${RPC-ZK}"/>
     </bean>
 
-    <bean id="server" class="com.chenchen.rpc.server.Server">
-        <constructor-arg name="serverAddress" value="${RPC-SERVER}"/>
-        <constructor-arg name="register" ref="register"/>
+    <!--生成实体，用于在业务类中直接注入-->
+    <bean id="client" class="com.chenchen.rpc.client.Client">
+        <constructor-arg name="discover" ref="discover"/>
     </bean>
 </beans>
